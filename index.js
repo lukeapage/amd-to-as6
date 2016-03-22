@@ -68,6 +68,11 @@ function convert (source, options) {
 
         else if (isSyncRequire(node)) {
               var moduleName = node.arguments[0].raw;
+
+              if (dependenciesMap[moduleName] !== undefined) {
+                throw new Error('same thing required in twice - ' + moduleName);
+              }
+
               var replace = false;
               if (node.parent.type === 'MemberExpression' && node.parent.object === node && node.parent.parent.type === 'VariableDeclarator') {
 
