@@ -2,6 +2,7 @@ var os = require('os');
 var falafel = require('falafel');
 var acorn = require('acorn-jsx');
 var beautify = require('js-beautify').js_beautify;
+var _ = require('lodash');
 
 module.exports = convert;
 
@@ -19,6 +20,7 @@ function convert (source, options) {
     var syncRequires = [];
     var requiresWithSideEffects = [];
     var mainCallExpression = null;
+    var variableDecls = [];
 
     var result = falafel(source, {
         parser: acorn,
@@ -43,6 +45,26 @@ function convert (source, options) {
         }
 
         else if (isSyncRequire(node)) {
+            if (options.simplify) {
+                //console.dir(node);
+                if (node.parent.type === 'VariableDeclarator') {
+                    var variableName = node.parent.id.name;
+                    dependenciesMap[node.arguments[0].raw] = variableName;
+                    //console.log(node.parent);
+
+                    var decl = _.find(variableDecls, function(decl){
+                      return decl.ls === node.parent.parent;
+                    })
+                    if (!decl) {
+                      decl = {ls:node.parent.parent, decls: []};
+                      variableDecls.push(decl);
+                    }
+                    decl.decls.push(node.parent);
+                } else if (node.parent.type === 'ExpressionStatement') {
+                    node.parent.update('');
+                    dependenciesMap[node.arguments[0].raw] = '';
+                }
+            }
             syncRequires.push(node);
         }
 
@@ -64,6 +86,27 @@ function convert (source, options) {
     if (!mainCallExpression) {
         return source;
     }
+
+    _(variableDecls)
+      .map(function(variableDecl) {
+        return {
+          ls: variableDecl.ls,
+          toKeep: _.filter(variableDecl.ls.declarations, function(decln) {
+              return _.indexOf(variableDecl.decls, decln) < 0;
+            })
+        };
+      })
+      .forEach(function(variableDecl) {
+        //console.dir(variableDecl.toKeep);
+        if (!variableDecl.toKeep.length) {
+          variableDecl.ls.update('');
+        } else {
+          toKeepStr = _(variableDecl.toKeep).map(function(toKeep) {
+            return toKeep.source();
+          }).join(',\n');
+          variableDecl.ls.update('var ' + toKeepStr + ';');
+        }
+      });
 
     var moduleDeps = mainCallExpression.arguments.length > 1 ? mainCallExpression.arguments[0] : null;
     var moduleFunc = mainCallExpression.arguments[mainCallExpression.arguments.length > 1 ? 1 : 0];
@@ -89,12 +132,14 @@ function convert (source, options) {
         var moduleName = node.arguments[0].raw;
 
         // if no import name assigned then create one
-        if (!dependenciesMap[moduleName]) {
+        if (dependenciesMap[moduleName] === undefined) {
             dependenciesMap[moduleName] = makeImportName(node.arguments[0].value);
         }
 
         // replace with the import name
-        node.update(dependenciesMap[moduleName]);
+        if (!options.simplify) {
+            node.update(dependenciesMap[moduleName]);
+        }
     });
 
     requiresWithSideEffects.forEach(function (node) {
