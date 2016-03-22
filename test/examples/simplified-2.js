@@ -4,6 +4,7 @@ define(function (require) {
         helperTemplates = {
           sheet: require('doT!commonTemplates/sheet'),
           instrument: require('doT!commonTemplates/instrument'),
+          xyz: require('src/templateHelper'),
         };
 
 });

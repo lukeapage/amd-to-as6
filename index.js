@@ -78,13 +78,18 @@ function convert (source, options) {
                   node.parent.update('');
                   dependenciesMap[moduleName] = '';
               } else {
-                if (moduleName.indexOf('!') < 0) {
-                  console.log(node.parent)
-                  throw new Error('require not in statement or variable declaration and not template');
+                var variableName;
+                if (moduleName === "'src/templateHelper'") {
+                  variableName = 'templateHelper';
+                } else {
+                  if (moduleName.indexOf('!') < 0) {
+                    throw new Error('require not in statement or variable declaration and not template');
+                  }
+                  variableName = moduleName.replace(/^.*\!/, '').replace(/['"]/ig, '').replace(/[\/\\]./, function(letter) {
+                    return letter.charAt(1).toUpperCase();
+                  });
                 }
-                dependenciesMap[moduleName] = moduleName.replace(/^.*\!/, '').replace(/['"]/ig, '').replace(/[\/\\]./, function(letter) {
-                  return letter.charAt(1).toUpperCase();
-                });
+                dependenciesMap[moduleName] = variableName;
                 replace = true;
               }
             syncRequires.push({node:node, replace: replace});
