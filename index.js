@@ -45,26 +45,24 @@ function convert (source, options) {
         }
 
         else if (isSyncRequire(node)) {
-            if (options.simplify) {
-                //console.dir(node);
-                if (node.parent.type === 'VariableDeclarator') {
-                    var variableName = node.parent.id.name;
-                    dependenciesMap[node.arguments[0].raw] = variableName;
-                    //console.log(node.parent);
+              //console.dir(node);
+              if (node.parent.type === 'VariableDeclarator') {
+                  var variableName = node.parent.id.name;
+                  dependenciesMap[node.arguments[0].raw] = variableName;
+                  //console.log(node.parent);
 
-                    var decl = _.find(variableDecls, function(decl){
-                      return decl.ls === node.parent.parent;
-                    })
-                    if (!decl) {
-                      decl = {ls:node.parent.parent, decls: []};
-                      variableDecls.push(decl);
-                    }
-                    decl.decls.push(node.parent);
-                } else if (node.parent.type === 'ExpressionStatement') {
-                    node.parent.update('');
-                    dependenciesMap[node.arguments[0].raw] = '';
-                }
-            }
+                  var decl = _.find(variableDecls, function(decl){
+                    return decl.ls === node.parent.parent;
+                  })
+                  if (!decl) {
+                    decl = {ls:node.parent.parent, decls: []};
+                    variableDecls.push(decl);
+                  }
+                  decl.decls.push(node.parent);
+              } else if (node.parent.type === 'ExpressionStatement') {
+                  node.parent.update('');
+                  dependenciesMap[node.arguments[0].raw] = '';
+              }
             syncRequires.push(node);
         }
 
@@ -134,11 +132,6 @@ function convert (source, options) {
         // if no import name assigned then create one
         if (dependenciesMap[moduleName] === undefined) {
             dependenciesMap[moduleName] = makeImportName(node.arguments[0].value);
-        }
-
-        // replace with the import name
-        if (!options.simplify) {
-            node.update(dependenciesMap[moduleName]);
         }
     });
 
