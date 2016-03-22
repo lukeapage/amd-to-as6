@@ -15,6 +15,7 @@ var makeTest = function (name, options) {
 };
 makeTest('simplified-style', {simplify: true, beautify: true});
 makeTest('simplified-2', {simplify: true, beautify: true});
+makeTest('simplified-3', {simplify: true, beautify: false});
 
 /*makeTest('define-with-deps');
 makeTest('define-no-deps');

@@ -22,6 +22,28 @@ function convert (source, options) {
     var mainCallExpression = null;
     var variableDecls = [];
 
+    function processVarDecl(node, moduleName, destructorName) {
+      var variableName = node.parent.id.name;
+      if (destructorName) {
+        if (variableName === destructorName) {
+          dependenciesMap[moduleName] = "{" + destructorName + "}";
+        } else {
+          dependenciesMap[moduleName] = "{" + destructorName + ":" + variableName + "}";
+        }
+      } else {
+        dependenciesMap[moduleName] = variableName;
+      }
+
+      var decl = _.find(variableDecls, function(decl){
+        return decl.ls === node.parent.parent;
+      })
+      if (!decl) {
+        decl = {ls:node.parent.parent, decls: []};
+        variableDecls.push(decl);
+      }
+      decl.decls.push(node.parent);
+    }
+
     var result = falafel(source, {
         parser: acorn,
         plugins: {jsx: true},
@@ -47,24 +69,17 @@ function convert (source, options) {
         else if (isSyncRequire(node)) {
               var moduleName = node.arguments[0].raw;
               var replace = false;
-              if (node.parent.type === 'VariableDeclarator') {
-                  var variableName = node.parent.id.name;
-                  dependenciesMap[moduleName] = variableName;
-                  //console.log(node.parent);
+              if (node.parent.type === 'MemberExpression' && node.parent.object === node && node.parent.parent.type === 'VariableDeclarator') {
 
-                  var decl = _.find(variableDecls, function(decl){
-                    return decl.ls === node.parent.parent;
-                  })
-                  if (!decl) {
-                    decl = {ls:node.parent.parent, decls: []};
-                    variableDecls.push(decl);
-                  }
-                  decl.decls.push(node.parent);
+                  processVarDecl(node.parent, moduleName, node.parent.property.name);
+              } else if (node.parent.type === 'VariableDeclarator') {
+                  processVarDecl(node, moduleName);
               } else if (node.parent.type === 'ExpressionStatement') {
                   node.parent.update('');
                   dependenciesMap[moduleName] = '';
               } else {
                 if (moduleName.indexOf('!') < 0) {
+                  console.log(node.parent)
                   throw new Error('require not in statement or variable declaration and not template');
                 }
                 dependenciesMap[moduleName] = moduleName.replace(/^.*\!/, '').replace(/['"]/ig, '').replace(/[\/\\]./, function(letter) {
@@ -126,7 +141,6 @@ function convert (source, options) {
         }
 
         if (data.replace) {
-          console.log("doing replace", dependenciesMap[moduleName])
           node.update(dependenciesMap[moduleName]);
         }
     });
