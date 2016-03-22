@@ -85,7 +85,7 @@ function convert (source, options) {
                   if (moduleName.indexOf('!') < 0) {
                     throw new Error('require not in statement or variable declaration and not template');
                   }
-                  variableName = moduleName.replace(/^.*\!/, '').replace(/['"]/ig, '').replace(/[\/\\]./, function(letter) {
+                  variableName = moduleName.replace(/^.*\!/, '').replace(/['"]/ig, '').replace(/[\/\\]./g, function(letter) {
                     return letter.charAt(1).toUpperCase();
                   });
                 }
