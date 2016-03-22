@@ -1,12 +1,7 @@
 define(function (require) {
 
     var b = require('b'),
-        e = {
-          // many a complex item ere so it be
-          f: function() {
-            
-          }
-        },
+        e = {},
         c = require('c'),
         d = 3;
 

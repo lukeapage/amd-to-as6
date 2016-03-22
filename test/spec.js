@@ -8,12 +8,14 @@ var readFile = function (name) {
 var makeTest = function (name, options) {
 
     exports['test ' + name.replace(/-/g, ' ')] = function (test) {
-        test.equal(amdToEs6(readFile(name), options || {beautify: true}), readFile(name + '-expected'));
+        test.equal(amdToEs6(readFile(name), options || {beautify: true}).replace(/\r?\n/g, '\n'), readFile(name + '-expected').replace(/\r?\n/g, '\n'));
         test.done();
     };
 
 };
 makeTest('simplified-style', {simplify: true, beautify: true});
+makeTest('simplified-2', {simplify: true, beautify: true});
+
 /*makeTest('define-with-deps');
 makeTest('define-no-deps');
 makeTest('require-with-deps');

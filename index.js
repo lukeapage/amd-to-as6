@@ -45,10 +45,11 @@ function convert (source, options) {
         }
 
         else if (isSyncRequire(node)) {
-              //console.dir(node);
+              var moduleName = node.arguments[0].raw;
+              var replace = false;
               if (node.parent.type === 'VariableDeclarator') {
                   var variableName = node.parent.id.name;
-                  dependenciesMap[node.arguments[0].raw] = variableName;
+                  dependenciesMap[moduleName] = variableName;
                   //console.log(node.parent);
 
                   var decl = _.find(variableDecls, function(decl){
@@ -61,13 +62,22 @@ function convert (source, options) {
                   decl.decls.push(node.parent);
               } else if (node.parent.type === 'ExpressionStatement') {
                   node.parent.update('');
-                  dependenciesMap[node.arguments[0].raw] = '';
+                  dependenciesMap[moduleName] = '';
+              } else {
+                if (moduleName.indexOf('!') < 0) {
+                  throw new Error('require not in statement or variable declaration and not template');
+                }
+                dependenciesMap[moduleName] = moduleName.replace(/^.*\!/, '').replace(/['"]/ig, '').replace(/[\/\\]./, function(letter) {
+                  return letter.charAt(1).toUpperCase();
+                });
+                replace = true;
               }
-            syncRequires.push(node);
+            syncRequires.push({node:node, replace: replace});
         }
 
         else if (isRequireWithNoCallback(node)) {
-            requiresWithSideEffects.push(node);
+          throw new Error('Side effect requires are not supported.');
+            //requiresWithSideEffects.push(node);
         }
 
         else if (isRequireWithDynamicModuleName(node)) {
@@ -85,26 +95,6 @@ function convert (source, options) {
         return source;
     }
 
-    _(variableDecls)
-      .map(function(variableDecl) {
-        return {
-          ls: variableDecl.ls,
-          toKeep: _.filter(variableDecl.ls.declarations, function(decln) {
-              return _.indexOf(variableDecl.decls, decln) < 0;
-            })
-        };
-      })
-      .forEach(function(variableDecl) {
-        //console.dir(variableDecl.toKeep);
-        if (!variableDecl.toKeep.length) {
-          variableDecl.ls.update('');
-        } else {
-          toKeepStr = _(variableDecl.toKeep).map(function(toKeep) {
-            return toKeep.source();
-          }).join(',\n');
-          variableDecl.ls.update('var ' + toKeepStr + ';');
-        }
-      });
 
     var moduleDeps = mainCallExpression.arguments.length > 1 ? mainCallExpression.arguments[0] : null;
     var moduleFunc = mainCallExpression.arguments[mainCallExpression.arguments.length > 1 ? 1 : 0];
@@ -126,13 +116,40 @@ function convert (source, options) {
         }, {}));
     }
 
-    syncRequires.forEach(function (node) {
+    syncRequires.forEach(function (data) {
+        var node = data.node;
         var moduleName = node.arguments[0].raw;
 
         // if no import name assigned then create one
         if (dependenciesMap[moduleName] === undefined) {
             dependenciesMap[moduleName] = makeImportName(node.arguments[0].value);
         }
+
+        if (data.replace) {
+          console.log("doing replace", dependenciesMap[moduleName])
+          node.update(dependenciesMap[moduleName]);
+        }
+    });
+
+    _(variableDecls)
+    .map(function(variableDecl) {
+      return {
+        ls: variableDecl.ls,
+        toKeep: _.filter(variableDecl.ls.declarations, function(decln) {
+          return _.indexOf(variableDecl.decls, decln) < 0;
+        })
+      };
+    })
+    .forEach(function(variableDecl) {
+      //console.dir(variableDecl.toKeep);
+      if (!variableDecl.toKeep.length) {
+        variableDecl.ls.update('');
+      } else {
+        toKeepStr = _(variableDecl.toKeep).map(function(toKeep) {
+          return toKeep.source();
+        }).join(',\n');
+        variableDecl.ls.update('var ' + toKeepStr + ';');
+      }
     });
 
     requiresWithSideEffects.forEach(function (node) {
