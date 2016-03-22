@@ -1,1 +1,4 @@
-import {c:b} from 'b';
+import {
+    c as b
+}
+from 'b';

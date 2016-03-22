@@ -28,7 +28,7 @@ function convert (source, options) {
         if (variableName === destructorName) {
           dependenciesMap[moduleName] = "{" + destructorName + "}";
         } else {
-          dependenciesMap[moduleName] = "{" + destructorName + ":" + variableName + "}";
+          dependenciesMap[moduleName] = "{" + destructorName + " as " + variableName + "}";
         }
       } else {
         dependenciesMap[moduleName] = variableName;
@@ -206,7 +206,13 @@ function convert (source, options) {
     // update the node with the new es6 code
     mainCallExpression.parent.update(moduleCode);
 
-    return result.toString();
+    result = result.toString();
+
+    if (!options.beautify) {
+      result = result.replace(/\n    /g, '\n');
+    }
+
+    return result;
 }
 
 /**
