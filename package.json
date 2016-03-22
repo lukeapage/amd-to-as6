@@ -1,5 +1,5 @@
 {
-  "name": "amd-to-es6",
+  "name": "amd-to-es6-lukepage",
   "version": "0.0.5",
   "description": "Convert AMD modules into ES6 modules",
   "author": "Jon Bretman",
