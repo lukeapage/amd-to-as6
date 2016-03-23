@@ -235,7 +235,13 @@ function getImportStatements (dependencies) {
             statements.push('import ' + key + ';');
         }
         else {
-            statements.push('import ' + dependencies[key] + ' from ' + key + ';');
+            var variableName = dependencies[key];
+            if (typeof variableName === 'object') {
+                statements.push('import ' + variableName.import + ' from ' + key + ';');
+                statements.push('const ' + variableName.final + ' = ' + variableName.import + ';');
+            } else {
+                statements.push('import ' + variableName + ' from ' + key + ';');
+            }
         }
     }
 
