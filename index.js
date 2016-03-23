@@ -25,11 +25,17 @@ function convert (source, options) {
     function processVarDecl(node, moduleName, destructorName) {
       var variableName = node.parent.id.name;
       if (destructorName) {
+        var final;
         if (variableName === destructorName) {
-          dependenciesMap[moduleName] = "{" + destructorName + "}";
+          final = "{" + destructorName + "}";
         } else {
-          dependenciesMap[moduleName] = "{" + destructorName + " as " + variableName + "}";
+          final = "{" + destructorName + " : " + variableName + "}";
         }
+        var importVar = moduleName.match(/([^'\/]+)'/)[1];
+        dependenciesMap[moduleName] = {
+          final,
+          importVar
+        };
       } else {
         dependenciesMap[moduleName] = variableName;
       }
@@ -237,8 +243,8 @@ function getImportStatements (dependencies) {
         else {
             var variableName = dependencies[key];
             if (typeof variableName === 'object') {
-                statements.push('import ' + variableName.import + ' from ' + key + ';');
-                statements.push('const ' + variableName.final + ' = ' + variableName.import + ';');
+                statements.push('import ' + variableName.importVar + ' from ' + key + ';');
+                statements.push('const ' + variableName.final + ' = ' + variableName.importVar + ';');
             } else {
                 statements.push('import ' + variableName + ' from ' + key + ';');
             }

@@ -1,4 +1,4 @@
 define(function (require) {
 
-    var b = require('b').c;
+    var b = require('a/bg').c;
 });
