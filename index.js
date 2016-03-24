@@ -221,6 +221,7 @@ function convert (source, options) {
 
     if (!options.beautify) {
       result = result.replace(/\n    /g, '\n');
+      result = result.replace(/\r?\n(\s*\r?\n){2,}/g, '\n\n');
     }
 
     return result;
